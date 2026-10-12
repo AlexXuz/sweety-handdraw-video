@@ -23,3 +23,11 @@ jobs:
         run: |
           python skills/sweety-handdraw-video/scripts/smoke_test.py --output /tmp/handdraw-ci
           python tools/package.py --output dist
+      - name: Report encoded stream timing
+        if: always()
+        run: |
+          ffmpeg -version | head -1
+          if test -f /tmp/handdraw-ci/outputs/film.mp4; then
+            ffprobe -v error -show_entries stream=codec_name,duration,nb_frames,start_time -of json /tmp/handdraw-ci/outputs/film.mp4
+            python -c "import wave; p='/tmp/handdraw-ci/work/mix.wav'; w=wave.open(p); print('Mixed WAV seconds:', w.getnframes()/w.getframerate())"
+          fi

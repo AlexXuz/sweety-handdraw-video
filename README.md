@@ -107,7 +107,7 @@ python skills/sweety-handdraw-video/scripts/smoke_test.py --output /tmp/handdraw
 
 最后一个命令会创建新的测试目录，需 FFmpeg 与中文字体。它验证运行行为，不是成片观感验收。生成安装包：`python3 tools/package.py --output dist`。
 
-目前完整流程在 macOS 验证；附带 Linux CI，用于验证依赖完整性、字形与绘制回归和短片合成。Windows 与其他 VoiceStudio 后端未完成整流程验证。字形描线不保证规范书法笔顺，任意新题材仍需实际检查。
+目前完整流程在 macOS 验证；Linux CI 已通过依赖完整性、字形与绘制回归、短片合成和打包检查。Windows 与其他 VoiceStudio 后端未完成整流程验证。字形描线不保证规范书法笔顺，任意新题材仍需实际检查。
 
 ## 致谢与许可
 

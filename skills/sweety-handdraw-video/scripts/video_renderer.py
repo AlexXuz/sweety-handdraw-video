@@ -160,7 +160,17 @@ def mix_audio(root,timeline):
     with wave.open(str(root/'music.wav'),'wb') as stream:
         stream.setparams((1,2,rate,0,'NONE','not compressed'))
         stream.writeframes((np.clip(music,-1,1)*32767).astype('<i2').tobytes())
-    subprocess.run(['ffmpeg','-y','-v','error','-i',str(root/'narration.wav'),'-i',str(root/'music.wav'),'-filter_complex','[0:a]loudnorm=I=-17:TP=-2:LRA=7[v];[v][1:a]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=false[out]','-map','[out]','-ar','48000','-ac','2',str(root/'mix.wav')],check=True)
+    # Flush loudnorm before amix: the combined graph loses its buffered tail on FFmpeg 6.1.
+    normalized_path=root/'normalized-narration.wav'
+    subprocess.run(['ffmpeg','-y','-v','error','-i',str(root/'narration.wav'),'-af','loudnorm=I=-17:TP=-2:LRA=7',
+                    '-ar',str(rate),'-ac','1','-c:a','pcm_f32le',str(normalized_path)],check=True)
+    subprocess.run(['ffmpeg','-y','-v','error','-i',str(normalized_path),'-i',str(root/'music.wav'),
+                    '-filter_complex','[0:a][1:a]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=false[out]',
+                    '-map','[out]','-ar',str(rate),'-ac','2',str(root/'mix.wav')],check=True)
+    with wave.open(str(root/'mix.wav'),'rb') as mixed_stream:
+        mixed_seconds=mixed_stream.getnframes()/mixed_stream.getframerate()
+    if abs(mixed_seconds-len(samples)/rate)>.01:
+        raise ValueError('Audio mixing changed narration duration; refusing to encode a truncated track')
 
 
 def encode(renderer,path,start=0.,duration=None):

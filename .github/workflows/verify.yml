@@ -1,0 +1,25 @@
+name: Verify packaged skill
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+          python -m pip install -r skills/sweety-handdraw-video/scripts/requirements.txt
+      - name: Verify integrity and drawing regressions
+        run: |
+          python skills/sweety-handdraw-video/scripts/validate_package.py
+          python skills/sweety-handdraw-video/scripts/test_drawing_contract.py
+      - name: Exercise offline pipeline and package
+        run: |
+          python skills/sweety-handdraw-video/scripts/smoke_test.py --output /tmp/handdraw-ci
+          python tools/package.py --output dist

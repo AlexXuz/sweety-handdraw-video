@@ -1,0 +1,45 @@
+{
+  "default": "iapetus",
+  "voices": [
+    {
+      "id": "iapetus",
+      "name": "清晰叙述 Iapetus",
+      "description": "用户附件音色，新默认；在 VoiceStudio 中参考合成，不等于直接调用 Gemini 原生 TTS",
+      "reference_audio": "iapetus.wav",
+      "reference_text": "iapetus.txt",
+      "source": "User-provided synthetic Gemini Iapetus MP3"
+    },
+    {
+      "id": "sweet-student",
+      "name": "甜美学姐",
+      "description": "既有默认声音，明亮亲切，适合课堂与轻科普",
+      "reference_audio": "sweet-student.wav",
+      "reference_text": "sweet-student.txt",
+      "source": "Previously accepted synthetic reference from this workflow"
+    },
+    {
+      "id": "friendly-man",
+      "name": "亲切男讲师",
+      "description": "温暖自然，适合通俗科普",
+      "reference_audio": "friendly-man.wav",
+      "reference_text": "friendly-man.txt",
+      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned"
+    },
+    {
+      "id": "calm-woman",
+      "name": "知性女讲师",
+      "description": "中低音沉静，适合知识讲解",
+      "reference_audio": "calm-woman.wav",
+      "reference_text": "calm-woman.txt",
+      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned"
+    },
+    {
+      "id": "warm-elder",
+      "name": "温厚男旁白",
+      "description": "温和稳重，适合寓言与生活话题",
+      "reference_audio": "warm-elder.wav",
+      "reference_text": "warm-elder.txt",
+      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned"
+    }
+  ]
+}

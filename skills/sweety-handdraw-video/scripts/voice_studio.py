@@ -15,20 +15,25 @@ PERSONAL_CATALOG = Path.home()/'.local/share/sweety-handdraw-video/voices/catalo
 
 def load_voice_catalog(root):
     catalog = json.loads((PACKAGE/'assets/voices/catalog.json').read_text())
+    profiles = {voice['id']: voice for voice in catalog['voices']}
+    identities = {identifier: {key: profile[key] for key in ('name', 'description', 'requires_original_reference') if key in profile}
+                  for identifier, profile in profiles.items()}
     for path in (PERSONAL_CATALOG, Path(root)/'options/local-voices.json'):
         if not path.is_file():
             continue
         local = json.loads(path.read_text())
         for entry in local['voices']:
             entry = dict(entry)
+            if entry['id'] not in profiles:
+                continue
             local_root = path.parent if path == PERSONAL_CATALOG else Path(root)
             for field in ('reference_audio', 'reference_text', 'preview_audio'):
                 if entry.get(field):
                     value = Path(entry[field]).expanduser()
                     entry[field] = str(value if value.is_absolute() else (local_root/value).resolve())
-            previous = next((voice for voice in catalog['voices'] if voice['id'] == entry['id']), {})
-            catalog['voices'] = [voice for voice in catalog['voices'] if voice['id'] != entry['id']] + [{**previous, **entry}]
-        if local.get('default'):
+            profiles[entry['id']].update(entry)
+            profiles[entry['id']].update(identities[entry['id']])
+        if local.get('default') in profiles:
             catalog['default'] = local['default']
     for profile in catalog['voices']:
         profile['preferred'] = profile['id'] == catalog['default']

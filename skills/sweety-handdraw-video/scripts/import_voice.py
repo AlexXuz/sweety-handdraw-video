@@ -12,6 +12,10 @@ from production_options import save_json
 def import_reference(job, identifier, name, audio, transcript, reference_kind='user_supplied'):
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,63}', identifier):
         raise ValueError('Voice id must use lowercase letters, digits and hyphens')
+    catalog_path = Path(__file__).resolve().parents[1]/'assets/voices/catalog.json'
+    allowed_ids = {voice['id'] for voice in json.loads(catalog_path.read_text())['voices']}
+    if identifier not in allowed_ids:
+        raise ValueError('Choose one of the six catalog voices; retired or extra voices cannot be imported')
     if reference_kind not in ('user_supplied', 'source_recording', 'synthetic_direction'):
         raise ValueError('Unknown reference kind')
     audio, transcript = Path(audio).resolve(), Path(transcript).resolve()

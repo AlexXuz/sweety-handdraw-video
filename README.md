@@ -8,7 +8,7 @@ Agent 负责理解内容、写口播、设计分镜和生成插画；本地工�
 
 [看有声样片](#精选样片) · [安装与环境](#安装与环境) · [开始制作](#开始制作) · [全部制作选项](#全部制作选项) · [常见问题](#常见问题) · [关注作者](https://x.com/leo_xiaolei)
 
-> **封板版本：v1.2；最新补丁：v1.2.2（2026-10-13）**。单套黑边字幕、完整旁白流程、制作选项与素材按需缓存纳入本次封板；以包内 `VERSION` 和 Git 标签为准。
+> **封板版本：v1.2；最新补丁：v1.2.3（2026-10-13）**。单套黑边字幕、完整旁白流程、制作选项与素材按需缓存纳入本次封板；以包内 `VERSION` 和 Git 标签为准。
 
 ## 精选样片
 
@@ -91,7 +91,7 @@ Agent 负责理解内容、写口播、设计分镜和生成插画；本地工�
 npx skills add threerocks/sweety-handdraw-video --skill sweety-handdraw-video
 ```
 
-此命令安装仓库当前公开内容。需要固定本版时，使用 [v1.2.2 安装包](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.2/sweety-handdraw-video-v1.2.2.zip)。
+此命令安装仓库当前公开内容。需要固定本版时，使用 [v1.2.3 安装包](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.3/sweety-handdraw-video-v1.2.3.zip)。
 
 手动安装：将包内的 `sweety-handdraw-video` **整个文件夹**放入宿主的个人 Skills 目录。Codex 示例：`~/.codex/skills/sweety-handdraw-video`。更新前备份旧目录；仅复制 `SKILL.md` 会缺少脚本、素材和内置依赖。
 
@@ -266,23 +266,24 @@ VoiceStudio 需要 `/engines/tts`、`/generate` 及可选 `/transcribe` 接口�
 
 例如：“笔杆写 @leo_xiaolei；水印写『手绘口播 · @leo_xiaolei』，淡一点，避开字幕。”也可以明确说“不加广告和水印”。
 
-### 声音目录与自定义参考
+### 声音目录与参考
 
-| 名称 | 标识 | 获取方式 |
+只保留以下六款，选择器和文字引导使用相同名称与顺序。
+
+| 名称 | 试听 | 生产参考 |
 |---|---|---|
-| 清晰叙述 Iapetus | `iapetus` · [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--iapetus.wav) | 可下载合成参考；并非直接调用 Gemini 原生 TTS |
-| 甜美学姐 | `sweet-student` · [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--sweet-student.wav) | 可下载合成参考 |
-| 亲切男讲师 | `friendly-man` · [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--friendly-man.wav) | 可下载合成参考 |
-| 知性女讲师 | `calm-woman` · [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--calm-woman.wav) | 可下载合成参考 |
-| 温厚男旁白 | `warm-elder` · [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--warm-elder.wav) | 可下载合成参考 |
-| 故事解说 | `story-narrator` · [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--story-narrator.wav) | 可下载合成参考，归并三条故事样片的共用声音 |
-| 指定片尾解说参考 | `bilibili-outro` | **须自行导入对应原片录音与准确逐字稿，未导入不可选** |
+| 逼真男声 | [《那条死于愤怒的蛇》节选](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.3/assets--voices--previews--realistic-man.wav) | 沿用该片原始参考；公共安装需自行导入 |
+| 逼真女声 | [《快乐囚禁你的方式》节选](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.3/assets--voices--previews--bilibili-outro.wav) | 沿用当前原片提取人声；公共安装需自行导入 |
+| 甜美学姐 | [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--sweet-student.wav) | 可下载合成参考 |
+| Iapetus | [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--iapetus.wav) | 可下载合成参考，并非直接调用 Gemini 原生 TTS |
+| 知性女讲师 | [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--calm-woman.wav) | 可下载合成参考 |
+| 故事解说 | [同文试听](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--story-narrator.wav) | 独立保留的合成参考 |
 
-目录共七个方向，但公共包可直接使用的合成参考为六款。声音名称描述用途，不是官方云端音色 ID，也不是热度排行。换后端或换稿件后需要重新试听。
+前两项播放对应成片节选，其余四款播放同一段文本。成片节选只用于试听，不能反过来当作原片参考继续克隆。逼真女声目前暂用，听感仍待调整；改名不代表新增听感验收。
 
-选择器用同一段文本试听，方便比较声音。可直接指定名称，也可委托模型根据稿件选择；已有用户验收的本机主力声音时默认优先沿用，本次明确选择优先。选择参考之后，仍需有真实可用的配音后端才能生成新正文。
+作者本机已保存两款逼真声音的原始参考，可以直接选择。公共安装包不含这些录音：未导入时可以试听，但不能选择它们生成。导入方法见[本地声音运行](skills/sweety-handdraw-video/references/local-runtime.md)。个人目录和任务目录只能补充这六项的参考，不能把其他音色或旧名称加回选择器。
 
-自定义声音可导入自己有权使用的录音。优先用干净原声与准确逐字稿；先核对同文与正文短样，再核对完整旁白。不要把新合成的试听反复用作原片参考。用户的原始录音、本机主力声音与公共 Skill 包分开保存。
+可直接指定这六个名称之一，也可委托模型根据稿件选择。已有本机默认声音时优先沿用，本次明确选择优先。声音参考、逐字稿与生成参数分别保留；更换后端或稿件后仍需试听。
 
 ## 从输入到成片
 
@@ -342,7 +343,7 @@ python skills/sweety-handdraw-video/scripts/smoke_test.py --output /tmp/handdraw
 python3 tools/package.py --output dist
 ```
 
-v1.2.2 记录：57 项回归通过、1,215 个内置依赖文件核验、21 个风格预览检查。该结果不能替代视频观感、故事事实、听感或学习效果验收。更多记录见 [验证范围](docs/validation.md)。
+v1.2.3 记录：59 项回归通过、1,215 个内置依赖文件核验、21 个风格预览检查。该结果不能替代视频观感、故事事实、听感或学习效果验收。更多记录见 [验证范围](docs/validation.md)。
 
 本次 v1.2 封板包含整篇连续旁白、纯旁白默认、剧情检查与片尾保护、原片参考导入、声音来源追踪、可选离线降噪、本机主力声音目录，以及字幕唯一性和素材缓存检查。此前本地 1.3/1.4/1.4.1 为未公开的开发迭代号；公开标签按本次指定固定为 v1.2。
 

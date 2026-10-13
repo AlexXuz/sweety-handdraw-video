@@ -1,5 +1,5 @@
 {
-  "version": "1.2",
+  "version": "1.2.3",
   "files": {
     "assets/hands/cardigan-fountain.png": {
       "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--hands--cardigan-fountain.png",
@@ -169,23 +169,11 @@
       "sha256": "6c7f99412f03ddd86ca4168a34d322ee6d1608f1f85a0ec96a69b811b08de9f9",
       "release_asset": "assets--style-previews--9.jpg"
     },
-    "assets/voices/bilibili-outro.wav": {
-      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--bilibili-outro.wav",
-      "bytes": 714308,
-      "sha256": "96c1805f199e8c995ecea1f2885998c128b046d7454b73821b3d5917e370510e",
-      "release_asset": "assets--voices--bilibili-outro.wav"
-    },
     "assets/voices/calm-woman.wav": {
       "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--calm-woman.wav",
       "bytes": 752684,
       "sha256": "173b149542a07a4f093947ba72bb1c1ae8a2b6da66e48e8728ff92060a902851",
       "release_asset": "assets--voices--calm-woman.wav"
-    },
-    "assets/voices/friendly-man.wav": {
-      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--friendly-man.wav",
-      "bytes": 576044,
-      "sha256": "54799c27e4d372321d49b2d8c2c6e09ff521db8543dd77148dedc0c7c2927c9b",
-      "release_asset": "assets--voices--friendly-man.wav"
     },
     "assets/voices/iapetus.wav": {
       "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--iapetus.wav",
@@ -194,9 +182,9 @@
       "release_asset": "assets--voices--iapetus.wav"
     },
     "assets/voices/previews/bilibili-outro.wav": {
-      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--bilibili-outro.wav",
-      "bytes": 714308,
-      "sha256": "96c1805f199e8c995ecea1f2885998c128b046d7454b73821b3d5917e370510e",
+      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.3/assets--voices--previews--bilibili-outro.wav",
+      "bytes": 354318,
+      "sha256": "148a32a1f2f74a5d6adac8aa46fc9fe6b2f71d49519392c38a388211705d0c20",
       "release_asset": "assets--voices--previews--bilibili-outro.wav"
     },
     "assets/voices/previews/calm-woman.wav": {
@@ -204,12 +192,6 @@
       "bytes": 1566788,
       "sha256": "af9741e0aad1245e198cc0c890117b078e51117b7589521b42d6656e1235784e",
       "release_asset": "assets--voices--previews--calm-woman.wav"
-    },
-    "assets/voices/previews/friendly-man.wav": {
-      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--friendly-man.wav",
-      "bytes": 1152068,
-      "sha256": "916328714acdf49740fa509f48f51ec22346309ee27f248eda0572da6bdd9c7e",
-      "release_asset": "assets--voices--previews--friendly-man.wav"
     },
     "assets/voices/previews/iapetus.wav": {
       "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--iapetus.wav",
@@ -229,12 +211,6 @@
       "sha256": "a727010b74eab9f7f5b7314573f390a6c816a9ae4b49f4f4bfcb2bf3da34d400",
       "release_asset": "assets--voices--previews--sweet-student.wav"
     },
-    "assets/voices/previews/warm-elder.wav": {
-      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--previews--warm-elder.wav",
-      "bytes": 1198148,
-      "sha256": "d14d8ffc5efeeff3219c067779c31507c56f94ef0244928501855b9c1b856772",
-      "release_asset": "assets--voices--previews--warm-elder.wav"
-    },
     "assets/voices/story-narrator.wav": {
       "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--story-narrator.wav",
       "bytes": 967748,
@@ -247,11 +223,11 @@
       "sha256": "e90258e842d5880d8cfad1ab900ce3160b8e890dbeeb43824e802ff4fc7ff156",
       "release_asset": "assets--voices--sweet-student.wav"
     },
-    "assets/voices/warm-elder.wav": {
-      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/assets--voices--warm-elder.wav",
-      "bytes": 579884,
-      "sha256": "d3610810e5a47f3bc419420f651204103477a916169fad717c2af173c4de6afd",
-      "release_asset": "assets--voices--warm-elder.wav"
+    "assets/voices/previews/realistic-man.wav": {
+      "url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.3/assets--voices--previews--realistic-man.wav",
+      "bytes": 453678,
+      "sha256": "ff660186321f8a21d01372a6276fd524115f118a109f2b7772cac27533ac974b",
+      "release_asset": "assets--voices--previews--realistic-man.wav"
     }
   }
 }

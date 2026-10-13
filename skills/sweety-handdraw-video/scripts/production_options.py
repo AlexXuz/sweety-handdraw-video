@@ -118,6 +118,7 @@ def load_voices(job):
         preview = PACKAGE/'assets/voices'/voice.get('preview_audio', '')
         if voice.get('preview_audio') and asset_available(preview):
             voice['audio_path'] = str(preview)
+        voice['preview_available'] = bool(voice['audio_path'] and asset_available(Path(voice['audio_path'])))
     return voices
 
 
@@ -173,7 +174,7 @@ def serve(job, defaults_path, explicit_path=None, port=0, timeout=60):
             allowed = {}
             for hand in hands: allowed['/hands/'+hand['id']] = (PACKAGE/'assets/hands'/hand['source'],'image/png')
             for voice in voices:
-                if voice['available']: allowed['/voices/'+voice['id']] = (Path(voice['audio_path']),'audio/wav')
+                if voice['preview_available']: allowed['/voices/'+voice['id']] = (Path(voice['audio_path']),'audio/wav')
             for style in catalog['styles']:
                 if not style['preview'].startswith('http'): allowed['/'+style['preview']] = (job/'style'/style['preview'],'image/jpeg')
             if path in allowed:

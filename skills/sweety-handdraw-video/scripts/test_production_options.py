@@ -10,6 +10,7 @@ from hand_assets import prepare_hand
 from watermark_assets import prepare_watermark, watermark_position
 from timeline_contract import validate_timeline
 from caption_assets import build_caption
+from video_job import find_font
 
 
 class ProductionOptionsTests(unittest.TestCase):
@@ -69,12 +70,12 @@ class ProductionOptionsTests(unittest.TestCase):
         self.assertNotIn('source',job['hand'])
 
     def test_pen_only_does_not_require_a_forearm_and_label_limit_is_enforced(self):
-        font='/System/Library/Fonts/Hiragino Sans GB.ttc'
-        hand=prepare_hand({'preset':'pen-only','pen_text':'手绘口播Skill'},self.root,self.root,1080,font,0)
+        font_path,font_index=find_font({})
+        hand=prepare_hand({'preset':'pen-only','pen_text':'手绘口播Skill'},self.root,self.root,1080,font_path,font_index)
         self.assertEqual(hand['kind'],'pen')
         self.assertTrue(validate_timeline({'cover_seconds':1,'canvas':{'height':1080},'hand':hand,'pages':[]}))
         with self.assertRaisesRegex(ValueError,'16'):
-            prepare_hand({'preset':'pen-only','pen_text':'甲'*17},self.root,self.root,1080,font,0)
+            prepare_hand({'preset':'pen-only','pen_text':'甲'*17},self.root,self.root,1080,font_path,font_index)
 
     def test_optional_watermark_drift_is_visible_quiet_and_stays_in_frame(self):
         self.assertIsNone(prepare_watermark({},self.root,1920,1080))

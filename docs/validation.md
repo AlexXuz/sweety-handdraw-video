@@ -1,3 +1,7 @@
+# v1.2.2 跨平台测试修复（2026-10-13）
+
+仅笔模式的测试曾写死 macOS 字体路径，导致 Ubuntu CI 在字体加载处失败。现复用运行时已有的字体查找函数；Linux 使用 Noto CJK，macOS 使用可用的系统中文字体。57 项测试的断言保持不变，生产代码与 v1.2.1 相同。v1.2 和 v1.2.1 标签保持原样。
+
 # v1.2.1 美术指导补丁检查（2026-10-13）
 
 指定的 `sweety-image-art-direction/SKILL.md` 与项目内置 `GUIDE.md` SHA-256 均为 `fbbfd33d70f729011b6a6bc232851c116cd4a89ead2adea4462888a6ce26fc1a`。

@@ -8,7 +8,7 @@ Agent 负责理解内容、写口播、设计分镜和生成插画；本地工�
 
 [看有声样片](#精选样片) · [安装与环境](#安装与环境) · [开始制作](#开始制作) · [全部制作选项](#全部制作选项) · [常见问题](#常见问题) · [关注作者](https://x.com/leo_xiaolei)
 
-> **封板版本：v1.2；美术指导补丁：v1.2.1（2026-10-13）**。单套黑边字幕、完整旁白流程、制作选项与素材按需缓存纳入本次封板；以包内 `VERSION` 和 Git 标签为准。
+> **封板版本：v1.2；最新补丁：v1.2.2（2026-10-13）**。单套黑边字幕、完整旁白流程、制作选项与素材按需缓存纳入本次封板；以包内 `VERSION` 和 Git 标签为准。
 
 ## 精选样片
 
@@ -91,7 +91,7 @@ Agent 负责理解内容、写口播、设计分镜和生成插画；本地工�
 npx skills add threerocks/sweety-handdraw-video --skill sweety-handdraw-video
 ```
 
-此命令安装仓库当前公开内容。需要固定本版时，使用 [v1.2.1 安装包](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.1/sweety-handdraw-video-v1.2.1.zip)。
+此命令安装仓库当前公开内容。需要固定本版时，使用 [v1.2.2 安装包](https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2.2/sweety-handdraw-video-v1.2.2.zip)。
 
 手动安装：将包内的 `sweety-handdraw-video` **整个文件夹**放入宿主的个人 Skills 目录。Codex 示例：`~/.codex/skills/sweety-handdraw-video`。更新前备份旧目录；仅复制 `SKILL.md` 会缺少脚本、素材和内置依赖。
 
@@ -342,7 +342,7 @@ python skills/sweety-handdraw-video/scripts/smoke_test.py --output /tmp/handdraw
 python3 tools/package.py --output dist
 ```
 
-v1.2.1 记录：57 项回归通过、1,215 个内置依赖文件核验、21 个风格预览检查。该结果不能替代视频观感、故事事实、听感或学习效果验收。更多记录见 [验证范围](docs/validation.md)。
+v1.2.2 记录：57 项回归通过、1,215 个内置依赖文件核验、21 个风格预览检查。该结果不能替代视频观感、故事事实、听感或学习效果验收。更多记录见 [验证范围](docs/validation.md)。
 
 本次 v1.2 封板包含整篇连续旁白、纯旁白默认、剧情检查与片尾保护、原片参考导入、声音来源追踪、可选离线降噪、本机主力声音目录，以及字幕唯一性和素材缓存检查。此前本地 1.3/1.4/1.4.1 为未公开的开发迭代号；公开标签按本次指定固定为 v1.2。
 

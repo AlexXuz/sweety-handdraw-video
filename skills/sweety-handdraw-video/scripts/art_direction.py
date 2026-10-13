@@ -33,7 +33,7 @@ def check_record(record_path, required, dependency_hash, style_hash=None):
     entries={Path(entry['source']).resolve() if Path(entry['source']).is_absolute() else (record_path.parent/entry['source']).resolve():entry for entry in record['images']}
     for source,crop in required:
         entry=entries.get(source)
-        if not entry or entry.get('status')!='pass' or not entry.get('evidence'):
+        if not entry or entry.get('status')!='pass' or not isinstance(entry.get('evidence'), str) or not entry['evidence'].strip():
             raise ValueError('Image has no completed art-direction review: '+str(source))
         if entry.get('sha256')!=digest(resolve_asset(source)):
             raise ValueError('Image changed after art-direction review: '+str(source))
@@ -43,8 +43,12 @@ def check_record(record_path, required, dependency_hash, style_hash=None):
         if regions is not None and (crop is None or list(crop) not in regions):
             raise ValueError('This illustration crop was not approved: '+str(source))
         for field in ('brief_file','prompt_file'):
-            if not entry.get(field) or not (record_path.parent/entry[field]).is_file():
-                raise ValueError('Missing pre-generation art-direction evidence: '+field)
+            evidence_path = record_path.parent / entry.get(field, '')
+            if not evidence_path.is_file() or not evidence_path.read_text().strip():
+                raise ValueError('Missing or empty pre-generation art-direction evidence: '+field)
+            hash_field = field.replace('_file', '_sha256')
+            if entry.get(hash_field) != digest(evidence_path):
+                raise ValueError('Art-direction evidence changed or was not bound before generation: '+field)
     return len(required)
 
 
@@ -81,3 +85,30 @@ def verify_art_direction(root, manifest):
             raise ValueError('Unknown hand preset: '+identity)
         count+=check_record(PACKAGE/'assets/hands/art-direction.json',[(PACKAGE/'assets/hands'/profile['source'],None)],dependency_hash)
     return {'dependency_sha256':dependency_hash,'reviewed_image_uses':count, 'style':style_review, 'drawing_plan':drawing_review}
+
+
+def bind_evidence(record_path):
+    """Bind existing preparation files; never fabricate image review or pass status."""
+    record_path = Path(record_path)
+    record = json.loads(record_path.read_text())
+    if not record.get('images'):
+        raise ValueError('At least one planned image is required')
+    for entry in record['images']:
+        for field in ('brief_file', 'prompt_file'):
+            path = record_path.parent / entry.get(field, '')
+            if not path.is_file() or not path.read_text().strip():
+                raise ValueError('Missing or empty preparation file: ' + field)
+            entry[field.replace('_file', '_sha256')] = digest(path)
+    temporary = record_path.with_suffix('.tmp')
+    temporary.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n')
+    temporary.replace(record_path)
+    return len(record['images'])
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command', choices=['bind-evidence'])
+    parser.add_argument('record', type=Path)
+    arguments = parser.parse_args()
+    print(json.dumps({'bound_images': bind_evidence(arguments.record), 'review_status_unchanged': True}))

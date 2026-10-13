@@ -47,7 +47,9 @@
     "sha256": "清理后文件的实际 SHA-256",
     "method": "generated_under_guidance",
     "brief_file": "briefs/object.md",
+    "brief_sha256": "出图前简报文件的实际 SHA-256",
     "prompt_file": "prompts/object.txt",
+    "prompt_sha256": "本次实际完整提示词文件的 SHA-256",
     "status": "pass",
     "evidence": "实际查看后的主体、接触、构图、边缘和可绘制性判断"
   }]
@@ -115,3 +117,5 @@ python3 /path/to/skill/scripts/handdraw_video.py verify /path/to/job
 旧生产任务先按连续旁白约定迁移，不能仅把旧分段文件拼接后声称已解决语调断裂。`runtime_fixture:true` 保留分段合成只为离线测试，永远不能作为交付路径。
 
 字幕交付使用单一烧录层。`timeline.captions` 固定为 `{"presentation":"burned","owner":"caption_events"}`；额外字幕事件、字幕轨和成片同目录的字幕文件均拒绝交付。
+
+v1.2.1 起简报和提示词必须非空且与绑定哈希一致。调用图像工具前运行 `python scripts/art_direction.py bind-evidence design/art-direction.json`；该命令不会把图片标记为通过。封面、正文、角色、道具、自定义手部和所有候选/编辑遵守同一流程。

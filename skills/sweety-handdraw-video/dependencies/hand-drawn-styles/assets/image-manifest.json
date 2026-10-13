@@ -5,17 +5,24 @@
     "assets/style-19/anchor-roundhead-redline.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/assets/style-19/anchor-roundhead-redline.png",
       "bytes": 1572238,
-      "sha256": "a804cff3553665df666c072c9b1d6118a48ffef537f98155e2d48173e90c985d"
+      "sha256": "a804cff3553665df666c072c9b1d6118a48ffef537f98155e2d48173e90c985d",
+      "fallback_url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/hand-drawn--assets--style-19--anchor-roundhead-redline.png"
     },
     "assets/style-20/anchor-warm-yellow-ink-story.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/assets/style-20/anchor-warm-yellow-ink-story.png",
       "bytes": 1720913,
-      "sha256": "29602439c2ca2f2aa847f6449eab824c90832e8790b543451fe0cbab914cde32"
+      "sha256": "29602439c2ca2f2aa847f6449eab824c90832e8790b543451fe0cbab914cde32",
+      "fallback_url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/hand-drawn--assets--style-20--anchor-warm-yellow-ink-story.png"
     },
     "assets/style-3.1/anchor-family.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/assets/style-3.1/anchor-family.png",
-      "bytes": 1814203,
-      "sha256": "d1eb06abd3e81115483b6d6227746ad1811f6c2bc8e0670f573fd4d6f9eaafc3"
+      "bytes": 1813423,
+      "sha256": "c4e2c8c0ea89fe24930e94fafb299677e10cc57824d8879d8a4c612cdda9d793",
+      "fallback_url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/hand-drawn--assets--style-3.1--anchor-family.png",
+      "upstream_sha256": "d1eb06abd3e81115483b6d6227746ad1811f6c2bc8e0670f573fd4d6f9eaafc3",
+      "upstream_bytes": 1814203,
+      "privacy_sanitized": true,
+      "pixels_unchanged": true
     },
     "benchmarks/codex-r1/s11-emosketch.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/benchmarks/codex-r1/s11-emosketch.png",
@@ -304,13 +311,23 @@
     },
     "examples/13-paper-folk-musician.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/examples/13-paper-folk-musician.png",
-      "bytes": 2656370,
-      "sha256": "4f8b3aeed14c02c4ac6c55b3e0b9d8e0cbd5dc330ea91f8736a3961b45f66199"
+      "bytes": 2655393,
+      "sha256": "41f7e0970dc10d8e344857e6396db3459d1d56f6eef43df560268ac920956303",
+      "fallback_url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/hand-drawn--examples--13-paper-folk-musician.png",
+      "upstream_sha256": "4f8b3aeed14c02c4ac6c55b3e0b9d8e0cbd5dc330ea91f8736a3961b45f66199",
+      "upstream_bytes": 2656370,
+      "privacy_sanitized": true,
+      "pixels_unchanged": true
     },
     "examples/13-paper-folk.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/examples/13-paper-folk.png",
-      "bytes": 2426454,
-      "sha256": "4fee20799a3fbe8d07309b540d53f08b0e9517d0f8ffc75011c6dc4c842ec4d1"
+      "bytes": 2425477,
+      "sha256": "b613f1e6f98a15eeea4efb75123b5373cb7f72494e2d4dfc9f2bdbf89d827fc7",
+      "fallback_url": "https://github.com/threerocks/sweety-handdraw-video/releases/download/v1.2/hand-drawn--examples--13-paper-folk.png",
+      "upstream_sha256": "4fee20799a3fbe8d07309b540d53f08b0e9517d0f8ffc75011c6dc4c842ec4d1",
+      "upstream_bytes": 2426454,
+      "privacy_sanitized": true,
+      "pixels_unchanged": true
     },
     "examples/14-nordic-storybook-lanky.png": {
       "url": "https://gentle-starburst-99bd99.netlify.app/hand-drawn/examples/14-nordic-storybook-lanky.png",

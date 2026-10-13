@@ -3,6 +3,7 @@
 import hashlib
 import json
 from pathlib import Path
+from hosted_assets import asset_available, records as hosted_records
 
 PACKAGE = Path(__file__).resolve().parents[1]
 
@@ -32,10 +33,23 @@ def validate_package():
         if len(ids) != len(set(ids)) or catalog['default'] not in ids:
             raise ValueError('Invalid catalog: ' + directory)
         for entry in catalog[collection]:
+            if directory == 'voices' and entry.get('requires_import'):
+                if entry.get('reference_audio') or entry.get('reference_text'):
+                    raise ValueError('An import-only reference must not bundle an external recording')
+                continue
             for field in required_fields:
-                if not (PACKAGE / 'assets' / directory / entry[field]).is_file():
+                if not asset_available(PACKAGE / 'assets' / directory / entry[field]):
                     raise ValueError('Missing preset: ' + entry['id'])
-    return {'status': 'passed', 'skill_entries': 1, 'bundled_dependencies': len(records), 'vendor_files_checked': checked}
+    previews = json.loads((PACKAGE/'assets/style-previews/manifest.json').read_text())['images']
+    hosted = hosted_records()
+    for preview in previews:
+        record = hosted['assets/style-previews/'+preview['thumbnail']]
+        if record['sha256'] != preview['thumbnail_sha256'] or record['url'] != preview['url']:
+            raise ValueError('Catalog preview changed: '+preview['id'])
+    binaries = [p for p in (PACKAGE/'assets').rglob('*') if p.suffix.lower() in {'.png','.jpg','.jpeg','.gif','.wav'}]
+    if binaries:
+        raise ValueError('Public presets belong in hosted storage, not the install package')
+    return {'catalog_previews_checked': len(previews), 'status': 'passed', 'skill_entries': 1, 'bundled_dependencies': len(records), 'vendor_files_checked': checked}
 
 
 if __name__ == '__main__':

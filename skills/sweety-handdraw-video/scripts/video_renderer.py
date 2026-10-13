@@ -7,6 +7,7 @@ import subprocess
 import wave
 import numpy as np
 from PIL import Image, ImageColor
+from watermark_assets import watermark_position
 
 
 def ease(fraction):
@@ -56,10 +57,11 @@ class Renderer:
         scale=self.timeline['hand']['scale']
         self.hand=hand.resize((round(hand.width*scale),round(hand.height*scale)),Image.Resampling.LANCZOS)
         self.nib=np.array(self.timeline['hand']['nib'])*scale
+        self.watermark = Image.open(self.timeline['watermark']['source']).convert('RGBA') if self.timeline.get('watermark') else None
 
     def layer(self,event,time):
         name=event['asset']
-        if time>=event['end']:
+        if event.get('caption') or time>=event['end']:
             return self.artwork[name]
         progress=np.clip((time-event['start'])/(event['end']-event['start']),0,1)
         maps=self.maps[name]
@@ -136,6 +138,11 @@ class Renderer:
             canvas=Image.new('RGBA',(self.width,self.height),self.paper)
             canvas.alpha_composite(frame,(-offset,0))
             frame=canvas
+        fade = self.timeline.get('ending', {}).get('fade_seconds', 0)
+        if index == len(self.starts) - 1 and fade > 0 and remaining < fade:
+            frame = Image.blend(frame, Image.new('RGBA', frame.size, self.paper), ease(1 - remaining / fade))
+        if getattr(self, 'watermark', None) is not None and time >= self.timeline['watermark']['start_seconds']:
+            frame.alpha_composite(self.watermark, watermark_position(self.timeline['watermark'], self.width, self.height, time))
         return frame.convert('RGB')
 
 
@@ -144,29 +151,32 @@ def mix_audio(root,timeline):
     with wave.open(str(root/'narration.wav'),'rb') as stream:
         rate=stream.getframerate()
         samples=np.frombuffer(stream.readframes(stream.getnframes()),dtype='<i2')
-    music=np.zeros(len(samples),dtype=np.float32)
-    chords=[(146.83,196.,246.94,293.66),(130.81,164.81,220.,261.63),(123.47,164.81,196.,246.94),(110.,146.83,196.,220.)]
-    for beat in np.arange(0,timeline['duration'],1.45):
-        chord=chords[int(beat/11.6)%len(chords)]
-        frequency=chord[int(beat/1.45)%4]
-        start=round(beat*rate)
-        end=min(len(samples),start+round(3.6*rate))
-        local=np.arange(end-start)/rate
-        envelope=np.minimum(local/.025,1)*np.exp(-local/1.15)
-        tone=np.sin(2*np.pi*frequency*local)+.18*np.sin(4*np.pi*frequency*local)
-        music[start:end]+=.009*tone*envelope
-    times=np.arange(len(samples))/rate
-    music*=np.minimum(1,np.maximum(0,(timeline['duration']-times)/1.1))
-    with wave.open(str(root/'music.wav'),'wb') as stream:
-        stream.setparams((1,2,rate,0,'NONE','not compressed'))
-        stream.writeframes((np.clip(music,-1,1)*32767).astype('<i2').tobytes())
-    # Flush loudnorm before amix: the combined graph loses its buffered tail on FFmpeg 6.1.
+    policy = timeline.get('audio_policy', {'background_music': False, 'layers': []})
     normalized_path=root/'normalized-narration.wav'
-    subprocess.run(['ffmpeg','-y','-v','error','-i',str(root/'narration.wav'),'-af','loudnorm=I=-17:TP=-2:LRA=7',
-                    '-ar',str(rate),'-ac','1','-c:a','pcm_f32le',str(normalized_path)],check=True)
-    subprocess.run(['ffmpeg','-y','-v','error','-i',str(normalized_path),'-i',str(root/'music.wav'),
-                    '-filter_complex','[0:a][1:a]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=false[out]',
-                    '-map','[out]','-ar',str(rate),'-ac','2',str(root/'mix.wav')],check=True)
+    # Duplicating mono into two full-level channels adds 3 LU to stereo loudness.
+    subprocess.run(['ffmpeg','-y','-v','error','-i',str(root/'narration.wav'),'-af','loudnorm=I=-20:TP=-2:LRA=7',
+                    '-ar',str(rate),'-ac','1','-c:a','pcm_s16le',str(normalized_path)],check=True)
+    layers = policy.get('layers', [])
+    if not layers:
+        # No implicit soundtrack and no buffered amix/limiter tail on narration-only output.
+        subprocess.run(['ffmpeg','-y','-v','error','-i',str(normalized_path),'-af','pan=stereo|c0=c0|c1=c0',
+                        '-c:a','pcm_s16le',str(root/'mix.wav')],check=True)
+    else:
+        from narration_master import sha256
+        command=['ffmpeg','-y','-v','error','-i',str(normalized_path)]
+        filters=[]
+        for index, layer in enumerate(layers, 1):
+            if sha256(layer['source']) != layer['sha256']:
+                raise ValueError('Audio layer changed after build')
+            command.extend(['-i',layer['source']])
+            filters.append(f"[{index}:a]volume={layer['gain']},adelay={round(layer['start']*1000)}:all=1[layer{index}]")
+        inputs='[0:a]'+''.join(f'[layer{index}]' for index in range(1,len(layers)+1))
+        filters.append(inputs+f'amix=inputs={len(layers)+1}:duration=first:normalize=0,alimiter=limit=0.89:level=false:latency=true[out]')
+        command.extend(['-filter_complex',';'.join(filters),'-map','[out]','-ar',str(rate),'-ac','2',str(root/'mix.wav')])
+        subprocess.run(command,check=True)
+    (root/'audio-mix-report.json').write_text(json.dumps({'background_music':policy.get('background_music',False),
+        'layers':layers,'narration_only':not layers,'delivery_notice':policy.get('delivery_notice',
+        '默认未添加背景音乐；可自行合成，或在发布平台选择配乐。')},ensure_ascii=False,indent=2))
     with wave.open(str(root/'mix.wav'),'rb') as mixed_stream:
         mixed_seconds=mixed_stream.getnframes()/mixed_stream.getframerate()
     if abs(mixed_seconds-len(samples)/rate)>.01:
@@ -213,6 +223,8 @@ def render_job(job_directory,start=0.,duration=None,preview=False):
     renderer=Renderer(job_directory)
     verify_art_direction(renderer.root,json.loads((renderer.root/'job.json').read_text()))
     verify_assets(renderer.root,renderer.timeline)
+    from narration_master import verify_compiled_master
+    verify_compiled_master(renderer.root, renderer.timeline)
     from timeline_contract import validate_timeline,validate_cover
     validate_timeline(renderer.timeline)
     validate_cover(renderer)
@@ -222,6 +234,8 @@ def render_job(job_directory,start=0.,duration=None,preview=False):
     if not preview and (start or duration is not None):
         raise ValueError('Use --preview for partial renders; delivery film must include the complete timeline')
     encode(renderer,path,start,duration)
+    from subtitle_contract import validate_subtitle_delivery
+    validate_subtitle_delivery(path)
     if not preview:
         record={'video_sha256':file_hash(path),'build_fingerprint':build_fingerprint(renderer.root)}
         (renderer.work/'render-record.json').write_text(json.dumps(record,indent=2))

@@ -54,6 +54,15 @@
       "brief_file": "briefs/cardigan-fountain.json",
       "prompt_file": "prompts/cardigan-fountain-r2.txt",
       "evidence": "Viewed generated full arm and writing grip: five-finger structure, clear contact, continuous forearm, material-specific shading; transparent silhouette and 887x1774 source inspected. Pixel-level alignment is calibrated separately. Minor edge fringe is evaluated on the intended light paper background."
+    },
+    {
+      "source": "pen-only.png",
+      "sha256": "40778ebb877bbf0c5eaa57d18e7a279d3d7837e6b4a604286a7d9c45199e42a3",
+      "method": "generated_under_guidance",
+      "status": "pass",
+      "brief_file": "briefs/pen-only.json",
+      "prompt_file": "prompts/pen-only.txt",
+      "evidence": "Viewed full 1280px RGBA sprite: complete navy marker and clear label strip, exposed nib at upper left, no hand or arm, continuous restrained material shading. Alpha transparency and actual nib calibration checked separately."
     }
   ]
 }

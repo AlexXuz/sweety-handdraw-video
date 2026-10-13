@@ -40,6 +40,9 @@ def main():
     tiny = Image.new('RGBA', (7, 7))
     ImageDraw.Draw(tiny).rectangle((2, 2, 4, 4), fill='#ea7488')
     tiny.save(inputs / 'tiny-color.png')
+    contour = Image.new('L',(7,7))
+    ImageDraw.Draw(contour).rectangle((2,2,4,4),outline=255,width=1)
+    contour.save(inputs / 'tiny-outline.png')
     ink = Image.new('RGBA', (100, 60))
     ImageDraw.Draw(ink).line((8, 45, 50, 10, 90, 45), fill='#202020', width=3)
     ink.save(inputs / 'ink-only.png')
@@ -55,7 +58,7 @@ def main():
                 {'type': 'text', 'text': '今晚，花十分钟。', 'x': 64, 'y': 20, 'size': 42},
                 {'type': 'illustration', 'parts': [{'id': 'object', 'polygon': [[0,0],[1,0],[1,1],[0,1]]}], 'source': 'inputs/icon.png', 'x': 120, 'y': 140, 'width': 220, 'height': 180, 'weight': 2}]},
             {'id': 'b', 'text': '小色块和纯线稿都需要完整绘制。', 'audio': 'inputs/beat-1.wav', 'actions': [
-                {'type': 'illustration', 'parts': [{'id': 'object', 'polygon': [[0,0],[1,0],[1,1],[0,1]]}], 'source': 'inputs/tiny-color.png', 'x': 580, 'y': 170, 'width': 7, 'height': 7},
+                {'type': 'illustration', 'parts': [{'id': 'object', 'polygon': [[0,0],[1,0],[1,1],[0,1]]}], 'source': 'inputs/tiny-color.png', 'outline_mask':'inputs/tiny-outline.png', 'x': 580, 'y': 170, 'width': 7, 'height': 7},
                 {'type': 'illustration', 'parts': [{'id': 'object', 'polygon': [[0,0],[1,0],[1,1],[0,1]]}], 'source': 'inputs/ink-only.png', 'x': 650, 'y': 190, 'width': 100, 'height': 60},
                 {'type': 'marker', 'style': 'circle', 'x': 540, 'y': 110, 'width': 300, 'height': 220, 'weight': .4}]}]},
             {'beats': [{'id': 'c', 'text': '换页后，时间由实际音频决定。', 'audio': 'inputs/beat-2.wav', 'actions': [

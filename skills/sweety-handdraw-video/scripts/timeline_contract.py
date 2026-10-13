@@ -6,7 +6,7 @@ from PIL import Image
 def validate_timeline(timeline):
     if timeline['cover_seconds']!=1:
         raise ValueError('Cover must last exactly one second')
-    if timeline['hand'].get('arm_bottom_at_highest_tip',0)<timeline['canvas']['height']:
+    if timeline['hand'].get('kind', 'hand') != 'pen' and timeline['hand'].get('arm_bottom_at_highest_tip',0)<timeline['canvas']['height']:
         raise ValueError('The forearm cut edge can become visible in-frame')
     for page in timeline['pages']:
         events=sorted((event for event in page['events'] if not event['caption']),key=lambda event:event['start'])
@@ -14,6 +14,9 @@ def validate_timeline(timeline):
             raise ValueError('Main drawing groups overlap; only one physical pen is allowed')
         if page['last_drawing_end']>page['speech_end']-.45:
             raise ValueError('Page drawing has no completion hold before narration ends')
+    if timeline.get('cues') or timeline.get('assets'):
+        from subtitle_contract import validate_subtitles
+        validate_subtitles(timeline)
     return True
 
 

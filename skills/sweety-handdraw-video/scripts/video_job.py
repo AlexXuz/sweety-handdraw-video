@@ -13,6 +13,10 @@ from PIL import Image, ImageFont
 import stroke_assets
 from hand_assets import prepare_hand
 from art_direction import verify_art_direction
+from caption_assets import build_caption, resolve_cues
+from watermark_assets import prepare_watermark
+from narration_master import load_master
+from audio_contract import resolve_audio_layers, validate_ending
 
 PACKAGE = Path(__file__).resolve().parents[1]
 SAMPLE_RATE = 48000
@@ -57,8 +61,11 @@ def inspect_environment(job_directory):
     inputs = [manifest.get('cover', {}).get('source')]
     for page in manifest['pages']:
         for beat in page['beats']:
-            inputs.append(beat.get('audio'))
+            if not manifest.get('narration'):
+                inputs.append(beat.get('audio'))
             inputs.extend(action.get('source') for action in beat.get('actions',[]) if action['type'] == 'illustration')
+    if manifest.get('narration'):
+        inputs.extend(manifest['narration'].get(key) for key in ('source', 'alignment'))
     for page in manifest['pages']:
         for group in page.get('visual_groups', []):
             inputs.extend(action.get('source') for action in group['actions'] if action['type']=='illustration')
@@ -81,6 +88,16 @@ def inspect_environment(job_directory):
             report['voice_studio']={'available':False,'message':'VoiceStudio 未安装、未启动或不可达；无法生成旁白，请先安装并启动。'}
     report['narration_files_available'] = all(beat.get('audio') and resolve_input(root,beat['audio']).is_file()
         for page in manifest['pages'] for beat in page['beats'])
+    if manifest.get('narration'):
+        try:
+            load_master(root, manifest, root/'work/audio/doctor-master.wav')
+            report['narration_files_available'] = True
+        except (ValueError, FileNotFoundError, KeyError) as error:
+            report['narration_error'] = str(error)
+            report['narration_files_available'] = False
+    elif not manifest.get('runtime_fixture'):
+        report['narration_error'] = 'Production requires a complete narration master and alignment'
+        report['narration_files_available'] = False
     report['ready'] = all(report['tools'].values()) and not report['missing_inputs'] and 'font_error' not in report and 'art_direction_error' not in report and report['narration_files_available']
 
     return report
@@ -95,7 +112,7 @@ def save_wave(path, samples):
 def read_narration(source, destination, pace, trim):
     if not .5 <= pace <= 2:
         raise ValueError('audio.pace must be within 0.5..2.0')
-    subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(source), '-af', f'atempo={pace}',
+    subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(source), '-af', ('anull' if pace == 1 else f'atempo={pace}'),
                     '-ar', str(SAMPLE_RATE), '-ac', '1', '-c:a', 'pcm_s16le', str(destination)], check=True)
     with wave.open(str(destination), 'rb') as stream:
         samples = np.frombuffer(stream.readframes(stream.getnframes()), dtype='<i2')
@@ -153,7 +170,7 @@ class FilmBuilder:
                 action.get('color', '#EAC958'), action.get('style', 'highlight'), action.get('line_width'))
         elif kind == 'illustration':
             source = resolve_input(self.root, action['source'])
-            metadata = stroke_assets.build_illustration(name, source, int(action['width']), int(action['height']), action.get('crop'),action.get('parts'))
+            metadata = stroke_assets.build_illustration(name, source, int(action['width']), int(action['height']), action.get('crop'),action.get('parts'),resolve_input(self.root,action['outline_mask']) if action.get('outline_mask') else None)
         else:
             raise ValueError(f'Unsupported action type: {kind}')
         self.assets[name] = metadata
@@ -167,39 +184,21 @@ class FilmBuilder:
                 'z': int(action.get('z', 10 if kind == 'marker' and action.get('style', 'highlight') == 'highlight' else 30)),
                 'role': kind}
 
-    def caption_events(self, beat, page_start):
+    def caption_events(self, cues):
         options = self.manifest.get('captions', {})
-        size = int(options.get('font_size', max(20, round(self.height * 42 / 1080))))
-        font = ImageFont.truetype(self.font_path, size, index=self.font_index)
-        max_width = self.width - 2 * max(30, round(self.width * .06))
-        lines, current = [], ''
-        for character in beat['text']:
-            if font.getlength(current + character) > max_width - 48 and current:
-                lines.append(current)
-                current = ''
-            current += character
-        if current:
-            lines.append(current)
-        if len(lines) > 2:
-            raise ValueError(f"Narration beat {beat['id']} needs more than two subtitle lines; split the beat")
-        text_layouts = [stroke_assets.measure_text(line,font) for line in lines]
-        line_height = max(layout['height'] for layout in text_layouts) + 4
-        widest = max(layout['width'] for layout in text_layouts)
-        height = line_height * len(lines) + 14
-        top = self.height - height - int(options.get('bottom_margin', 34))
-        actions = [self.create_asset({'type': 'marker', 'x': (self.width - widest - 48) // 2, 'y': top,
-                    'width': widest + 48, 'height': height, 'color': options.get('background', '#486949'), 'weight': .2})]
-        for index, line in enumerate(lines):
-            actions.append(self.create_asset({'type': 'text', 'text': line, 'size': size,
-                'x': (self.width-text_layouts[index]['width'])//2, 'y': top + 7 + index * line_height,
-                'color': options.get('color', '#FFFFFF'), 'weight': .8 / len(lines)}))
-        cursor = max(page_start, beat['start'] - .10)
-        for action in actions:
-            duration = .45 * action['weight']
-            action.update(start=cursor, end=cursor + duration, hide=beat['end'] + .06,
-                          caption=True, z=90 if action['role'] == 'marker' else 91)
-            cursor += duration
-        return actions
+        events = []
+        for cue in cues:
+            self.next_asset += 1
+            name = f'element-{self.next_asset:04d}'
+            metadata = build_caption(self.work / 'assets', name, cue['text'], options, self.width, self.height)
+            self.assets[name] = metadata
+            x = (self.width - metadata['width']) // 2
+            y = self.height - metadata['height'] - int(options.get('bottom_margin', round(self.height * .04)))
+            if min(x, y) < 0 or y + metadata['height'] > self.height:
+                raise ValueError('Caption lies outside the canvas')
+            events.append({'asset': name, 'x': x, 'y': y, 'role': 'caption', 'caption': True, 'z': 91,
+                           'start': cue['start'], 'end': cue['end'], 'hide': cue['end']})
+        return events
 
     def build(self):
         options = self.manifest.get('audio', {})
@@ -211,6 +210,9 @@ class FilmBuilder:
         if cover_seconds != 1.0:
             raise ValueError('Cover must last exactly 1 second: 0.5 seconds still, then 0.5 seconds fade')
         pieces = [np.zeros(round(cover_seconds * SAMPLE_RATE), dtype=np.int16)]
+        master_samples, master_beats, master_report = None, {}, None
+        if self.manifest.get('narration') or not self.manifest.get('runtime_fixture'):
+            master_samples, master_beats, master_report = load_master(self.root, self.manifest, self.work/'audio/master.wav')
         cursor = len(pieces[0]) / SAMPLE_RATE
         pages, cues, audio_report = [], [], []
         for page_index, page_spec in enumerate(self.manifest['pages']):
@@ -222,9 +224,16 @@ class FilmBuilder:
                 if not re.fullmatch(r'[A-Za-z0-9_-]+', beat_id) or beat_id in self.seen_beat_ids:
                     raise ValueError('Beat IDs must be unique safe filenames')
                 self.seen_beat_ids.add(beat_id)
-                samples, measurements = read_narration(resolve_input(self.root, beat_spec['audio']),
-                    self.work / 'audio' / f'{beat_id}.wav', float(options.get('pace', 1.0)), bool(options.get('trim_silence', True)))
-                duration = len(samples) / SAMPLE_RATE
+                if master_report:
+                    aligned = master_beats[beat_id]
+                    cursor = cover_seconds + aligned['start']
+                    duration = aligned['end'] - aligned['start']
+                    measurements = {'source_seconds': master_report['duration'], 'master_start': aligned['start'],
+                                    'master_end': aligned['end'], 'used_seconds': duration}
+                else:
+                    samples, measurements = read_narration(resolve_input(self.root, beat_spec['audio']),
+                        self.work / 'audio' / f'{beat_id}.wav', float(options.get('pace', 1.0)), bool(options.get('trim_silence', True)))
+                    duration = len(samples) / SAMPLE_RATE
                 beat = {'id': beat_id, 'start': cursor, 'end': cursor + duration, 'duration': duration, 'text': beat_spec['text']}
                 if not str(beat['text']).strip():
                     raise ValueError('Narration text cannot be empty')
@@ -235,7 +244,7 @@ class FilmBuilder:
                 hold = max(.5, duration * .13)
                 gap = .07
                 budget = duration - lead - hold - gap * max(0, len(actions) - 1)
-                if budget < .15 * len(actions):
+                if actions and budget < .15 * len(actions):
                     raise ValueError(f'{beat_id}: too many drawing actions for the measured narration; simplify or regroup')
                 drawing_cursor = cursor + lead
                 for action in actions:
@@ -243,14 +252,19 @@ class FilmBuilder:
                     action.update(start=drawing_cursor, end=drawing_cursor + drawing_seconds, caption=False)
                     drawing_cursor += drawing_seconds + gap
                 page['events'].extend(actions)
-                page['events'].extend(self.caption_events(beat, page['start']))
+                cue_source = aligned if master_report else beat_spec
+                if cue_source.get('caption_cues'):
+                    beat['caption_cues'] = cue_source['caption_cues']
+                beat_cues = resolve_cues(beat)
+                page['events'].extend(self.caption_events(beat_cues))
                 page['beats'].append(beat)
-                cues.append(beat.copy())
-                audio_report.append({'id': beat_id, 'source': str(resolve_input(self.root, beat_spec['audio'])), **measurements})
-                pieces.append(samples)
-                pause_samples = np.zeros(round(float(options.get('sentence_pause_seconds', .18)) * SAMPLE_RATE), dtype=np.int16)
-                pieces.append(pause_samples)
-                cursor += duration + len(pause_samples) / SAMPLE_RATE
+                cues.extend(beat_cues)
+                audio_report.append({'id': beat_id, 'source': master_report['source'] if master_report else str(resolve_input(self.root, beat_spec['audio'])), **measurements})
+                if not master_report:
+                    pieces.append(samples)
+                    pause_samples = np.zeros(round(float(options.get('sentence_pause_seconds', .18)) * SAMPLE_RATE), dtype=np.int16)
+                    pieces.append(pause_samples)
+                    cursor += duration + len(pause_samples) / SAMPLE_RATE
             if page_spec.get('visual_groups'):
                 for group in page_spec['visual_groups']:
                     first_index=int(group['start_beat'])
@@ -274,35 +288,71 @@ class FilmBuilder:
                         page['events'].append(action)
                         start+=duration+.08
             page['speech_end'] = page['beats'][-1]['end']
-            pause = float(options.get('page_pause_seconds', .24)) if page_index < len(self.manifest['pages']) - 1 else float(options.get('end_hold_seconds', 1.2))
+            pause = float(options.get('page_pause_seconds', .24)) if page_index < len(self.manifest['pages']) - 1 else float(options.get('end_hold_seconds', .45))
             if pause < 0:
                 raise ValueError('Audio pauses must be nonnegative')
-            pause_samples = np.zeros(round(pause * SAMPLE_RATE), dtype=np.int16)
-            pieces.append(pause_samples)
-            cursor += len(pause_samples) / SAMPLE_RATE
+            if master_report:
+                if page_index + 1 < len(self.manifest['pages']):
+                    next_id = self.manifest['pages'][page_index + 1]['beats'][0]['id']
+                    cursor = cover_seconds + master_beats[next_id]['start']
+                else:
+                    cursor = cover_seconds + len(master_samples) / SAMPLE_RATE + pause
+            else:
+                pause_samples = np.zeros(round(pause * SAMPLE_RATE), dtype=np.int16)
+                pieces.append(pause_samples)
+                cursor += len(pause_samples) / SAMPLE_RATE
             page['end'] = cursor
             for event in page['events']:
                 if not event['caption']:
                     event['hide'] = cursor
             page['last_drawing_end'] = max(event['end'] for event in page['events'] if not event['caption'])
             pages.append(page)
+        ending = self.manifest.get('ending', {})
+        fade = float(ending.get('fade_seconds', 0))
+        narration_end = cover_seconds + len(master_samples) / SAMPLE_RATE if master_report else pages[-1]['speech_end']
+        hold = pages[-1]['end'] - narration_end
+        if not math.isfinite(fade) or not 0 <= fade <= hold:
+            raise ValueError('Ending fade must fit entirely after narration')
+        caption_hold = float(ending.get('caption_hold_seconds', 0))
+        if not math.isfinite(caption_hold) or not 0 <= caption_hold <= hold - fade + .001:
+            raise ValueError('Final subtitle hold must end before the closing fade')
+        if caption_hold or master_report:
+            captions = [event for event in pages[-1]['events'] if event['caption']]
+            final_caption_end = narration_end + caption_hold
+            captions[-1]['end'] = final_caption_end
+            captions[-1]['hide'] = final_caption_end
+            cues[-1]['end'] = final_caption_end
+        if master_report:
+            pieces = [pieces[0], master_samples, np.zeros(round(float(options.get('end_hold_seconds', .45)) * SAMPLE_RATE), dtype=np.int16)]
+        ending_review = validate_ending(self.manifest, master_samples, SAMPLE_RATE) if master_report and not self.manifest.get('runtime_fixture') else None
         narration = np.concatenate(pieces)
         save_wave(self.work / 'narration.wav', narration)
         hand = self.manifest.get('hand', {})
         timeline = {'title': self.manifest['title'], 'source_notes': self.manifest.get('source_notes', []),
                     'canvas': {'width': self.width, 'height': self.height, 'fps': self.fps},
-                    'paper': self.manifest.get('paper', '#FBF9F1'), 'cover_seconds': cover_seconds,
+                    'paper': self.manifest.get('paper', '#FBF9F1'), 'cover_seconds': cover_seconds, 'ending': {'fade_seconds': fade, 'caption_hold_seconds': caption_hold},
+                    'narration_master': master_report,
+                    'captions': {'presentation': 'burned', 'owner': 'caption_events'},
+                    'audio_policy': resolve_audio_layers(self.root, self.manifest), 'ending_review': ending_review,
                     'duration': len(narration) / SAMPLE_RATE, 'pages': pages, 'cues': cues, 'audio_report': audio_report,
                     'assets': self.assets, 'font': {'path': self.font_path, 'index': self.font_index},
                     'hand': prepare_hand(hand, self.root, self.work, self.height, self.font_path, self.font_index),
+                    'watermark': prepare_watermark(self.manifest.get('watermark'), self.work, self.width, self.height),
                     'art_direction': self.art_direction,
                     'manifest_sha256': hashlib.sha256((self.root / 'job.json').read_bytes()).hexdigest()}
+        from subtitle_contract import validate_subtitles
+        validate_subtitles(timeline)
         cover = Image.open(resolve_input(self.root, self.manifest['cover']['source'])).convert('RGB')
         if abs(cover.width / cover.height - self.width / self.height) > .025:
             raise ValueError('Cover aspect ratio differs from canvas; generate or intentionally crop an appropriate cover')
         cover.resize((self.width, self.height), Image.Resampling.LANCZOS).save(self.output / 'cover.png')
         (self.work / 'timeline.json').write_text(json.dumps(timeline, ensure_ascii=False, indent=2))
-        (self.output / 'captions.srt').write_text('\n'.join(f"{index + 1}\n{subtitle_time(cue['start'])} --> {subtitle_time(cue['end'])}\n{cue['text']}\n" for index, cue in enumerate(cues)))
+        editing = self.output / 'editing'
+        editing.mkdir(exist_ok=True)
+        legacy = self.output / 'captions.srt'
+        if legacy.exists():
+            legacy.replace(editing / 'previous-captions.srt')
+        (editing / 'transcript.srt').write_text('\n'.join(f"{index + 1}\n{subtitle_time(cue['start'])} --> {subtitle_time(cue['end'])}\n{cue['text']}\n" for index, cue in enumerate(cues)))
         (self.output / 'script.txt').write_text(self.manifest['title'] + '\n\n' + '\n\n'.join(cue['text'] for cue in cues))
         print(json.dumps({'duration_seconds': timeline['duration'], 'pages': len(pages), 'beats': len(cues), 'drawn_assets': len(self.assets)}, ensure_ascii=False))
         return timeline

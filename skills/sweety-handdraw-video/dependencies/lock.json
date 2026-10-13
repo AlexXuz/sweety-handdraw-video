@@ -4,7 +4,7 @@
     "commit": "4132988b8596bfa36321c970a4472d4e3bb25d96",
     "path": "dependencies/hand-drawn-styles",
     "license": "MIT (preserved upstream notices)",
-    "files": 31,
+    "files": 32,
     "entry": "GUIDE.md",
     "entry_sha256": "119dc297f97bd21c752e0bfb208435320c8808822b125d0e674c70fe06943a86",
     "url": "https://github.com/threerocks/hand-drawn-styles"

@@ -100,10 +100,15 @@ class DrawingContractTests(unittest.TestCase):
         drawing.rectangle((10,10,60,60),fill='#203A56')
         drawing.rectangle((22,22,32,32),fill='#EEA050')
         source=self.directory/'overlap.png';image.save(source)
+        contour=Image.new('L',(80,80))
+        contour_draw=ImageDraw.Draw(contour)
+        contour_draw.rectangle((10,10,60,60),outline=255,width=3)
+        contour_draw.rectangle((22,22,32,32),outline=255,width=2)
+        contour.save(self.directory/'contour.png')
         whole=[[0,0],[1,0],[1,1],[0,1]]
         metadata=stroke_assets.build_illustration('overlap',source,80,80,parts=[
             {'id':'head','polygon':whole,'exclude_hsv':[[20,60,.24,.3]]},
-            {'id':'umbrella','polygon':whole}])
+            {'id':'umbrella','polygon':whole}],outline_mask_path=self.directory/'contour.png')
         maps=np.load(self.directory/'overlap.npz')
         self.assertEqual(maps['owners'][25,25],1)
         self.assertGreaterEqual(float(maps['color'][25,25])+1e-7,metadata['parts'][1]['fill_start'])

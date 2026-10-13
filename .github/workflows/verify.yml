@@ -18,7 +18,7 @@ jobs:
       - name: Verify integrity and drawing regressions
         run: |
           python skills/sweety-handdraw-video/scripts/validate_package.py
-          python skills/sweety-handdraw-video/scripts/test_drawing_contract.py
+          python -m unittest discover -s skills/sweety-handdraw-video/scripts -p 'test*.py' -v
       - name: Exercise offline pipeline and package
         run: |
           python skills/sweety-handdraw-video/scripts/smoke_test.py --output /tmp/handdraw-ci

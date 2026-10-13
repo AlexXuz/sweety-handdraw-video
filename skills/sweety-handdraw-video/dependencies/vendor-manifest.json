@@ -60,7 +60,7 @@
         "upstream_path": "assets/image-manifest.json",
         "path": "assets/image-manifest.json",
         "upstream_sha256": "9c6b57ae20bb4fcf7487763adfd4558c1c52b96e669bb1eacd868b5f241c3caf",
-        "sha256": "9c6b57ae20bb4fcf7487763adfd4558c1c52b96e669bb1eacd868b5f241c3caf"
+        "sha256": "66bbee4a08b53a8b4d6b34676029af9612cb3240d4dbaf51c248c3f6ac960fd1"
       },
       {
         "upstream_path": "assets/style-19/anchor-roundhead-redline.png.privacy.json",
@@ -158,7 +158,7 @@
         "upstream_path": "scripts/hosted_images.py",
         "path": "scripts/hosted_images.py",
         "upstream_sha256": "89fc8e59b615be9473af1d6cd1bfe5158319f8f78f9d32a157beb4bb6097b232",
-        "sha256": "89fc8e59b615be9473af1d6cd1bfe5158319f8f78f9d32a157beb4bb6097b232"
+        "sha256": "1f683b753ca0f3b6ba8f35f56bb37c4d1edb84dc673293a1cb5fb33e1ade4ceb"
       },
       {
         "upstream_path": "scripts/render_prompt.py",
@@ -189,10 +189,17 @@
         "path": "scripts/validate_style_20_asset.py",
         "upstream_sha256": "daf7c6f36a05a1766f52bb37e90fdc50ab890f816aab37789214fd3b503eea30",
         "sha256": "daf7c6f36a05a1766f52bb37e90fdc50ab890f816aab37789214fd3b503eea30"
+      },
+      {
+        "path": "assets/mirror-privacy-audit.json",
+        "sha256": "a88c6a8e2949a527a6cc1ed6660e720b7254e81bd437cc31c23f89088bcab559",
+        "upstream_path": null,
+        "upstream_sha256": null
       }
     ],
     "omitted_showcase_media": [],
-    "adaptation": "Nested SKILL.md renamed GUIDE.md and textual references updated; no nested installable skills. License files preserved."
+    "adaptation": "Nested SKILL.md renamed GUIDE.md and textual references updated; no nested installable skills. License files preserved.",
+    "local_adaptation": "Single GUIDE entry; verified GitHub mirrors for five runtime anchors; three mirrors have privacy metadata removed with identical decoded pixels. Upstream hashes preserved in image manifest."
   },
   {
     "name": "huashu-art-motion",

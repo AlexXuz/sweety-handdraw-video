@@ -1,5 +1,6 @@
 """Reject unreviewed image inputs or stale art-direction records before rendering."""
 from pathlib import Path
+from hosted_assets import resolve_asset
 import hashlib
 import json
 
@@ -22,17 +23,19 @@ def image_inputs(manifest, root):
     return [(Path(path).expanduser().resolve() if Path(path).expanduser().is_absolute() else (root/path).resolve(),crop) for path,crop in inputs]
 
 
-def check_record(record_path, required, dependency_hash):
+def check_record(record_path, required, dependency_hash, style_hash=None):
     record_path=Path(record_path)
     record=json.loads(record_path.read_text())
     if record.get('dependency_sha256')!=dependency_hash:
         raise ValueError('Art-direction record does not match the bundled mandatory dependency')
+    if style_hash is not None and record.get('style_sha256') != style_hash:
+        raise ValueError('Art-direction review belongs to another resolved style')
     entries={Path(entry['source']).resolve() if Path(entry['source']).is_absolute() else (record_path.parent/entry['source']).resolve():entry for entry in record['images']}
     for source,crop in required:
         entry=entries.get(source)
         if not entry or entry.get('status')!='pass' or not entry.get('evidence'):
             raise ValueError('Image has no completed art-direction review: '+str(source))
-        if entry.get('sha256')!=digest(source):
+        if entry.get('sha256')!=digest(resolve_asset(source)):
             raise ValueError('Image changed after art-direction review: '+str(source))
         if entry.get('method') not in ('generated_under_guidance','composed_with_verified_layers'):
             raise ValueError('Image lacks a supported guided-generation/composition method')
@@ -48,6 +51,10 @@ def check_record(record_path, required, dependency_hash):
 def verify_art_direction(root, manifest):
     if manifest.get('runtime_fixture'):
         return {'fixture_only':True,'delivery_allowed':False}
+    from style_choice import verify_style
+    from drawing_contract import verify_drawing_plans
+    style_review = verify_style(root)
+    drawing_review = verify_drawing_plans(root, manifest, style_review)
     design_path=root/manifest.get('design_file','design.json')
     if not design_path.is_file():
         raise ValueError('A model-authored design.json is required before production')
@@ -64,7 +71,7 @@ def verify_art_direction(root, manifest):
     reference=manifest.get('art_direction',{}).get('record')
     if not reference:
         raise ValueError('All images require an art_direction.record before build')
-    count=check_record(root/reference,image_inputs(manifest,root),dependency_hash)
+    count=check_record(root/reference,image_inputs(manifest,root),dependency_hash,style_review['resolved_sha256'])
     hand=manifest.get('hand',{})
     if not hand.get('source'):
         catalog=json.loads((PACKAGE/'assets/hands/catalog.json').read_text())
@@ -73,4 +80,4 @@ def verify_art_direction(root, manifest):
         if profile is None:
             raise ValueError('Unknown hand preset: '+identity)
         count+=check_record(PACKAGE/'assets/hands/art-direction.json',[(PACKAGE/'assets/hands'/profile['source'],None)],dependency_hash)
-    return {'dependency_sha256':dependency_hash,'reviewed_image_uses':count}
+    return {'dependency_sha256':dependency_hash,'reviewed_image_uses':count, 'style':style_review, 'drawing_plan':drawing_review}

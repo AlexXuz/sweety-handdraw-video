@@ -4,42 +4,80 @@
     {
       "id": "iapetus",
       "name": "清晰叙述 Iapetus",
-      "description": "用户附件音色，新默认；在 VoiceStudio 中参考合成，不等于直接调用 Gemini 原生 TTS",
+      "description": "清晰、平稳，适合知识讲解与结构化信息。",
       "reference_audio": "iapetus.wav",
       "reference_text": "iapetus.txt",
-      "source": "User-provided synthetic Gemini Iapetus MP3"
+      "source": "User-provided synthetic Gemini Iapetus MP3",
+      "preview_audio": "previews/iapetus.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。"
     },
     {
       "id": "sweet-student",
       "name": "甜美学姐",
-      "description": "既有默认声音，明亮亲切，适合课堂与轻科普",
+      "description": "明亮亲切，适合课堂与轻科普。",
       "reference_audio": "sweet-student.wav",
       "reference_text": "sweet-student.txt",
-      "source": "Previously accepted synthetic reference from this workflow"
+      "source": "Previously accepted synthetic reference from this workflow",
+      "preview_audio": "previews/sweet-student.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。"
     },
     {
       "id": "friendly-man",
       "name": "亲切男讲师",
-      "description": "温暖自然，适合通俗科普",
+      "description": "温暖自然，适合日常讲解。",
       "reference_audio": "friendly-man.wav",
       "reference_text": "friendly-man.txt",
-      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned"
+      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned",
+      "preview_audio": "previews/friendly-man.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。"
     },
     {
       "id": "calm-woman",
       "name": "知性女讲师",
-      "description": "中低音沉静，适合知识讲解",
+      "description": "中低音沉静，适合知识与观点。",
       "reference_audio": "calm-woman.wav",
       "reference_text": "calm-woman.txt",
-      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned"
+      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned",
+      "preview_audio": "previews/calm-woman.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。"
     },
     {
       "id": "warm-elder",
       "name": "温厚男旁白",
-      "description": "温和稳重，适合寓言与生活话题",
+      "description": "温和稳重，适合寓言与生活话题。",
       "reference_audio": "warm-elder.wav",
       "reference_text": "warm-elder.txt",
-      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned"
+      "source": "User-owned synthetic Qwen3-TTS VoiceDesign reference; no real person cloned",
+      "preview_audio": "previews/warm-elder.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。"
+    },
+    {
+      "id": "story-narrator",
+      "name": "故事解说 · 三条成片同款",
+      "description": "三条故事视频共用的叙事方向，语速较快。",
+      "reference_audio": "story-narrator.wav",
+      "reference_text": "story-narrator.txt",
+      "source": "Synthetic VoxCPM2 narration generated for this task; source style from user-provided videos",
+      "preview_audio": "previews/story-narrator.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。"
+    },
+    {
+      "id": "bilibili-outro",
+      "name": "片尾解说 · B站指定参考",
+      "description": "指定原片女声；必须先导入原片录音与准确逐字稿。包内旧试听只表示曾生成的方向，不用作克隆参考。",
+      "source_urls": [
+        "https://www.bilibili.com/video/BV1SXZyYtEVy/",
+        "https://www.bilibili.com/video/BV16UR1YuE6z/"
+      ],
+      "redistribution": "This bundle contains generated audio, not the original video recording. No source-owner authorization claim is made.",
+      "reference_audio": null,
+      "reference_text": null,
+      "preview_audio": "previews/bilibili-outro.wav",
+      "preview_text": "有时候，改变结果不需要更加用力。停下来，看清问题，再向前走一步。",
+      "source": "Synthetic VoxCPM2 output generated from the user-requested public video outro reference; source recording is stored only in the original local task.",
+      "requires_import": true,
+      "requires_original_reference": true,
+      "reference_kind": "generated_preview"
     }
   ]
 }

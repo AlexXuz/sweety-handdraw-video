@@ -32,50 +32,56 @@ def ordered_paths(mask):
     for path in paths:
         coordinates = np.rint(path).astype(int)
         covered[coordinates[:, 1], coordinates[:, 0]] = True
-    # The shared tracer drops short branches; retain every remaining skeleton pixel.
-    labels, count = ndimage.label(skeleton & ~covered, structure=np.ones((3, 3)))
-    for label in range(1, count + 1):
-        ys, xs = np.where(labels == label)
-        remaining_points = np.c_[xs, ys].astype(float)
-        short_path = [remaining_points[0]]
-        remaining_points = remaining_points[1:]
-        while len(remaining_points):
-            nearest = np.argmin(np.linalg.norm(remaining_points - short_path[-1], axis=1))
-            short_path.append(remaining_points[nearest])
-            remaining_points = np.delete(remaining_points, nearest, axis=0)
-        if len(short_path) == 1:
-            short_path.append(short_path[0] + [.01, 0.])
-        paths.append(np.array(short_path))
+    # Follow only adjacent leftover pixels. A branch starts a new physical stroke.
+    pending = set(zip(*np.where(skeleton & ~covered)))
+    while pending:
+        point = min(pending)
+        chain = []
+        while point in pending:
+            pending.remove(point)
+            y, x = point
+            chain.append([x, y])
+            neighbors = sorted((y+dy, x+dx) for dy in (-1,0,1) for dx in (-1,0,1)
+                               if (dy or dx) and (y+dy, x+dx) in pending)
+            if not neighbors:
+                break
+            point = neighbors[0]
+        if len(chain) == 1:
+            chain.append([chain[0][0]+.01, chain[0][1]])
+        paths.append(np.array(chain, dtype=float))
     if not paths:
         ys, xs = np.where(mask)
         if not len(xs):
             return []
-        paths = [np.array([[xs.mean(), ys.mean()], [xs.mean() + .01, ys.mean()]])]
+        paths = [np.array([[xs[0],ys[0]],[xs[0]+.01,ys[0]]],dtype=float)]
     covered[:] = False
     for path in paths:
         coordinates = np.rint(path).astype(int)
-        covered[coordinates[:, 1], coordinates[:, 0]] = True
-    # Thinning can shorten wedge-shaped stroke tips; extend the pen to those tips.
+        covered[coordinates[:,1],coordinates[:,0]] = True
+    # Keep broad stroke tips within nib distance without connecting across blank paper.
     while True:
         distance, nearest = ndimage.distance_transform_edt(~covered, return_indices=True)
         distance[~mask] = 0
         y, x = np.unravel_index(np.argmax(distance), mask.shape)
-        if distance[y, x] <= 7:
+        if distance[y,x] <= 7:
             break
-        anchor = np.array([nearest[1, y, x], nearest[0, y, x]], dtype=float)
-        extension = np.linspace(anchor, [x, y], max(2, math.ceil(distance[y, x]) + 1))
-        paths.append(extension)
+        anchor = np.array([nearest[1,y,x],nearest[0,y,x]],dtype=float)
+        extension = np.linspace(anchor,[x,y],max(2,math.ceil(distance[y,x])+1))
         coordinates = np.rint(extension).astype(int)
-        covered[coordinates[:, 1], coordinates[:, 0]] = True
+        if not mask[coordinates[:,1],coordinates[:,0]].all():
+            extension = np.array([[x,y],[x+.01,y]],dtype=float)
+            coordinates = np.rint(extension).astype(int)
+        paths.append(extension)
+        covered[coordinates[:,1],coordinates[:,0]] = True
     oriented = [path if tuple(path[0][::-1]) <= tuple(path[-1][::-1]) else path[::-1] for path in paths]
-    return sorted(oriented, key=lambda path: (round(path[:, 1].min() / 16), path[:, 0].min()))
+    return sorted(oriented,key=lambda path:(round(path[:,1].min()/16),path[:,0].min()))
 
 
 def time_paths(paths, shape, start=0., duration=1.):
     reveal = np.full(shape, np.inf, dtype=np.float32)
     segments = []
     weights = [max(1., lengths(path)[-1]) for path in paths]
-    travel_weights = [np.linalg.norm(paths[i + 1][0] - paths[i][-1]) * .22 for i in range(len(paths) - 1)]
+    travel_weights = [max(3., np.linalg.norm(paths[i + 1][0] - paths[i][-1]) * .22) for i in range(len(paths) - 1)]
     total = sum(weights) + sum(travel_weights)
     cursor = start
     for index, (path, weight) in enumerate(zip(paths, weights)):
@@ -198,8 +204,9 @@ def build_brush(name, width, height, color, style='highlight', line_width=None):
     return save_asset(name,rgba,reveal,segments,{'type':'marker_'+style})
 
 
-def build_illustration(name, source_path, max_width, max_height, crop=None, parts=None):
+def build_illustration(name, source_path, max_width, max_height, crop=None, parts=None, outline_mask_path=None):
     artwork=Image.open(source_path).convert('RGBA')
+    source_size = artwork.size
     if crop is not None:
         left, top, right, bottom = crop
         if not (0 <= left < right <= artwork.width and 0 <= top < bottom <= artwork.height):
@@ -209,7 +216,8 @@ def build_illustration(name, source_path, max_width, max_height, crop=None, part
         rgb = np.array(artwork)[:, :, :3]
         alpha = np.rint(np.clip((253-rgb.min(axis=2).astype(float))/18, 0, 1)*255).astype(np.uint8)
         artwork = Image.fromarray(np.dstack([rgb, alpha]))
-    artwork.thumbnail((max_width,max_height),Image.Resampling.LANCZOS)
+    scale = min(max_width/artwork.width, max_height/artwork.height)
+    artwork = artwork.resize((max(1,round(artwork.width*scale)),max(1,round(artwork.height*scale))),Image.Resampling.LANCZOS)
     pixels=np.array(artwork)
     maximum=pixels[:,:,:3].max(axis=2)
     alpha=pixels[:,:,3]
@@ -219,6 +227,15 @@ def build_illustration(name, source_path, max_width, max_height, crop=None, part
     depth=ndimage.distance_transform_edt(dark)
     outline=dark&(depth<5.2)
     ink_weight=dark.astype(float)*np.clip((6.-depth)/1.,0,1)
+    if outline_mask_path is not None:
+        explicit = Image.open(outline_mask_path).convert('L')
+        if explicit.size != source_size:
+            raise ValueError('Outline mask must match source image dimensions before crop')
+        if crop is not None:
+            explicit = explicit.crop(tuple(crop))
+        explicit = explicit.resize(artwork.size,Image.Resampling.NEAREST)
+        outline = (np.array(explicit)>127)&(alpha>0)
+        ink_weight = outline.astype(float)
     fill_mask=(alpha>0)&(ink_weight<.99)
     ys, xs = np.where(alpha > 0)
     if not len(xs):
@@ -237,6 +254,14 @@ def build_illustration(name, source_path, max_width, max_height, crop=None, part
             raise ValueError('Part polygons must have >=3 normalized vertices')
         ImageDraw.Draw(region).polygon([tuple(point) for point in polygon * [artwork.width-1,artwork.height-1]],fill=255)
         mask = (np.array(region)>0)&(alpha>0)&(owners<0)
+        # Preserve held objects and other occluding shapes for their own semantic part.
+        for excluded_polygon in part.get('exclude_polygons', []):
+            excluded_polygon = np.asarray(excluded_polygon, dtype=float)
+            if len(excluded_polygon)<3 or not ((excluded_polygon>=0)&(excluded_polygon<=1)).all():
+                raise ValueError('Excluded polygons must have >=3 normalized vertices')
+            excluded_region = Image.new('L', artwork.size)
+            ImageDraw.Draw(excluded_region).polygon([tuple(point) for point in excluded_polygon * [artwork.width-1,artwork.height-1]],fill=255)
+            mask &= np.array(excluded_region)==0
         # A background prop visible between curls belongs to the prop, not the head polygon.
         for exclusion in part.get('exclude_hsv', []):
             if len(exclusion)!=4 or not (0<=exclusion[0]<=exclusion[1]<=360 and 0<=exclusion[2]<=1 and 0<=exclusion[3]<=1):
@@ -251,6 +276,9 @@ def build_illustration(name, source_path, max_width, max_height, crop=None, part
         part_masks.append(mask)
     if ((alpha>0)&(owners<0)).any():
         raise ValueError('Semantic parts do not cover every visible pixel; inspect and repair masks')
+    for part, mask in zip(parts, part_masks):
+        if not (outline & mask).any():
+            raise ValueError('Part has no drawable outline; prepare a contour layer/mask before generation: '+part['id'])
     ink_reveal = np.full(alpha.shape,np.inf,dtype=np.float32)
     color_reveal = np.full(alpha.shape,np.inf,dtype=np.float32)
     segments, part_reports = [], []

@@ -151,6 +151,29 @@
         650
       ],
       "label_color": "#EEE9D7"
+    },
+    {
+      "id": "pen-only",
+      "name": "仅画笔 · 无手臂",
+      "kind": "pen",
+      "source": "pen-only.png",
+      "nib": [
+        96,
+        134
+      ],
+      "scale": 0.25,
+      "label_segment": [
+        [
+          327,
+          366
+        ],
+        [
+          918,
+          949
+        ]
+      ],
+      "label_height": 50,
+      "label_color": "#263849"
     }
   ]
 }

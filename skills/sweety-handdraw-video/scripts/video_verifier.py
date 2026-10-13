@@ -20,18 +20,32 @@ def file_hash(path):
 def build_fingerprint(root):
     root = Path(root)
     timeline = json.loads((root / 'work' / 'timeline.json').read_text())
-    paths = [root / 'work' / 'timeline.json', root / 'work' / 'narration.wav', root / 'outputs' / 'cover.png', Path(timeline['hand']['source'])]
+    paths = [root / 'work' / 'timeline.json', root / 'work' / 'narration.wav', root / 'work' / 'mix.wav',
+             root / 'work' / 'audio-mix-report.json', root / 'outputs' / 'cover.png', Path(timeline['hand']['source'])]
+    if timeline.get('watermark'):
+        paths.append(Path(timeline['watermark']['source']))
     manifest = json.loads((root / 'job.json').read_text())
     if manifest.get('art_direction',{}).get('record'):
         paths.append(root/manifest['art_direction']['record'])
     if not manifest.get('runtime_fixture'):
         paths.append(root/manifest.get('design_file','design.json'))
+        from drawing_contract import illustration_actions
+        plan_path = root/manifest['drawing_plan']
+        paths.extend([root/'style/catalog.json',root/'style/selection.json',root/'style/resolved.json',plan_path,plan_path.with_suffix('.preflight.json'),root/manifest['drawing_review']])
+        paths.extend((root/action['outline_mask']).resolve() for action in illustration_actions(manifest) if action.get('outline_mask'))
+    if timeline.get('narration_master'):
+        from narration_master import verify_compiled_master
+        verify_compiled_master(root, timeline)
+        paths.append(Path(timeline['narration_master']['alignment']))
+    paths.extend(Path(layer['source']) for layer in timeline.get('audio_policy', {}).get('layers', []))
     paths.extend(sorted(Path(__file__).parent.glob('*.py')))
     source_cover = Path(manifest['cover']['source']).expanduser()
     paths.append(source_cover if source_cover.is_absolute() else root / source_cover)
     paths.extend(Path(clip['source']) for clip in timeline['audio_report'])
     for name in sorted(timeline['assets']):
         paths.extend(root / 'work' / 'assets' / f'{name}.{extension}' for extension in ('png', 'npz'))
+        if timeline['assets'][name].get('font'):
+            paths.append(Path(timeline['assets'][name]['font']['path']))
         if timeline['assets'][name].get('source'):
             paths.append(Path(timeline['assets'][name]['source']))
     digest = hashlib.sha256()
@@ -72,7 +86,16 @@ def verify_assets(root, timeline):
         maps = np.load(root / 'work' / 'assets' / f'{name}.npz')
         alpha = artwork[:, :, 3]
         entry = {'name': name, 'type': metadata['type']}
+        if metadata['type'] == 'typeset_caption':
+            mask = alpha > 0
+            margin = metadata['safe_margin']
+            require(mask.any() and not mask[:margin].any() and not mask[-margin:].any() and not mask[:, :margin].any() and not mask[:, -margin:].any(), f'{name}: empty or clipped caption')
+            require(not metadata['segments'], f'{name}: captions must be static typeset text')
+            entries.append({**entry, 'lines': len(metadata['lines']), 'font': metadata['font'], 'background': metadata.get('background')})
+            continue
         require(bool(metadata['segments']), f'{name}: no drawing segments')
+        from drawing_contract import validate_strokes
+        validate_strokes(metadata)
         if metadata['type'] == 'illustration':
             require('owners' in maps and bool(metadata.get('parts')), f'{name}: missing semantic ownership')
             require((maps['owners'][alpha>0]>=0).all(), f'{name}: unowned illustration pixels')
@@ -142,6 +165,8 @@ def verify_job(job_directory, assets_only=False):
     from timeline_contract import validate_timeline,validate_cover
     from video_renderer import Renderer
     validate_timeline(timeline)
+    from subtitle_contract import validate_subtitle_delivery
+    report['subtitles'] = validate_subtitle_delivery(output / 'film.mp4')
     validate_cover(Renderer(root))
     canvas = timeline['canvas']
     for page in timeline['pages']:
@@ -176,6 +201,23 @@ def verify_job(job_directory, assets_only=False):
     volume = subprocess.run(['ffmpeg', '-hide_banner', '-i', str(video), '-af', 'loudnorm=I=-17:TP=-2:LRA=7:print_format=json', '-f', 'null', '-'], capture_output=True, text=True)
     match = re.search(r'\{\s*"input_i".*?\}', volume.stderr, re.S)
     require(bool(match), 'Loudness measurement failed')
+    report['audio_mix'] = json.loads((work/'audio-mix-report.json').read_text())
+    require(report['audio_mix']['layers'] == timeline.get('audio_policy', {}).get('layers', []), 'Mixed audio layers differ from approved audio policy')
+    report['ending_review'] = timeline.get('ending_review')
+    expected_audio = np.frombuffer(subprocess.check_output(['ffmpeg','-v','error','-i',str(work/'mix.wav'),'-ac','1','-ar','48000','-f','f32le','-']),dtype='<f4')
+    encoded_audio = np.frombuffer(subprocess.check_output(['ffmpeg','-v','error','-i',str(video),'-vn','-ac','1','-ar','48000','-f','f32le','-']),dtype='<f4')
+    common_samples = min(len(expected_audio),len(encoded_audio))
+    require(abs(len(expected_audio)-len(encoded_audio))/48000 < .08, 'Encoded audio loses part of the intended track')
+    audio_correlation = float(np.corrcoef(expected_audio[:common_samples],encoded_audio[:common_samples])[0,1])
+    require(audio_correlation > .99, 'Encoded audio differs from the intended narration mix')
+    tail = timeline.get('ending_review')
+    if tail:
+        last_voice = round((timeline['cover_seconds'] + tail['last_active_seconds'])*48000)
+        tail_start = max(0,last_voice-2*48000)
+        tail_correlation = float(np.corrcoef(expected_audio[tail_start:last_voice],encoded_audio[tail_start:last_voice])[0,1])
+        require(tail_correlation > .98, 'Encoding changed or cut the final spoken phrase')
+        report['ending_review'] = {**tail,'final_phrase_encoding_correlation':tail_correlation}
+    report['audio_track_correlation'] = audio_correlation
     report['loudness'] = json.loads(match.group())
     require(-20 < float(report['loudness']['input_i']) < -14, 'Loudness outside expected narration range')
     require(float(report['loudness']['input_tp']) < -1, 'True peak too high')

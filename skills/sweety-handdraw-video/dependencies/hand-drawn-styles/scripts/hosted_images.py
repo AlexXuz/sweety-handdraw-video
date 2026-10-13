@@ -43,6 +43,10 @@ def validate_manifest(manifest: dict) -> dict:
             raise ValueError(f"图片清单包含无效路径: {key}")
         if not isinstance(record, dict) or record.get("url") != f"{base_url}/{quote(key, safe='/')}":
             raise ValueError(f"图片地址与清单路径不一致: {key}")
+        if record.get("fallback_url"):
+            fallback = urlsplit(record["fallback_url"])
+            if fallback.scheme != "https" or not fallback.hostname or fallback.username or fallback.password:
+                raise ValueError("镜像必须使用不含凭据的 HTTPS 地址")
         size = record.get("bytes")
         digest = record.get("sha256")
         if type(size) is not int or size <= 0 or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
@@ -90,14 +94,17 @@ def verify_image_bytes(content: bytes, record: dict, key: str) -> None:
 
 
 def download_image(key: str, record: dict) -> bytes:
-    request = Request(record["url"], headers={"User-Agent": "hand-drawn-styles", "Cache-Control": "no-cache"})
-    try:
-        with urlopen(request, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response:
-            content = response.read(record["bytes"] + 1)
-    except (OSError, URLError, HTTPException) as error:
-        raise ValueError(f"图片下载失败: {key};请检查网络后重试 hosted_images.py fetch") from error
-    verify_image_bytes(content, record, key)
-    return content
+    failures = []
+    for url in dict.fromkeys([record["url"], record.get("fallback_url", record["url"])]):
+        request = Request(url, headers={"User-Agent": "hand-drawn-styles", "Cache-Control": "no-cache"})
+        try:
+            with urlopen(request, timeout=DOWNLOAD_TIMEOUT_SECONDS) as response:
+                content = response.read(record["bytes"] + 1)
+            verify_image_bytes(content, record, key)
+            return content
+        except (OSError, URLError, HTTPException, ValueError) as error:
+            failures.append(type(error).__name__)
+    raise ValueError(f"图片下载失败: {key};主地址与镜像均不可用 ({', '.join(failures)})")
 
 
 def write_atomic(path: Path, content: bytes) -> None:
